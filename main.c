@@ -195,6 +195,19 @@ void pmw3366_set_mode(bool as, int8_t lod)
 	SS_HIGH;
 }
 
+void pmw3366_set_at(int8_t at)
+{
+    static int8_t last_at = 0;
+    if ((int8_t)at != last_at) {
+        SS_LOW;
+        spi_write(0x11, at);
+        // return to burst mode isn't used anywhere else not sure why
+        //spi_write(0x50, 0x00);
+        SS_HIGH;
+        last_at = at;
+    }
+}
+
 int main(void)
 {
 	union motion_data x, y;
@@ -310,9 +323,11 @@ int main(void)
 			int16_t cpi;
 			bool as;
 			int8_t lod;
-			mouse_get_params(&cpi, &as, &lod);
+            int8_t at;
+			mouse_get_params(&cpi, &as, &lod, &at);
 			pmw3366_set_cpi(cpi);
 			pmw3366_set_mode(as, lod);
+            pmw3366_set_at(at);
 			const uint8_t btn_dbncd = b1 | (b2 << 1);
 
 			if ((btn_dbncd != btn_prev) || _x.all || _y.all) {
