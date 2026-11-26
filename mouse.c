@@ -78,20 +78,11 @@ static uint8_t  EEMEM btn_swap_ee = 0;
 
 void store_config(int16_t cpi, bool as, int8_t lod, int8_t at, bool btn_swap)
 {
-    eeprom_write_word(&cpi_ee, (uint16_t)cpi);
-    eeprom_busy_wait();
-
-    eeprom_write_byte(&as_ee, (uint8_t)as);
-    eeprom_busy_wait();
-
-    eeprom_write_byte(&lod_ee, (uint8_t)lod);
-    eeprom_busy_wait();
-
-    eeprom_write_byte(&at_ee, (uint8_t)at);
-    eeprom_busy_wait();
-
-    eeprom_write_byte(&btn_swap_ee, (uint8_t)btn_swap);
-    eeprom_busy_wait();
+    eeprom_update_word(&cpi_ee, (uint16_t)cpi);
+    eeprom_update_byte(&as_ee, (uint8_t)as);
+    eeprom_update_byte(&lod_ee, (uint8_t)lod);
+    eeprom_update_byte(&at_ee, (uint8_t)at);
+    eeprom_update_byte(&btn_swap_ee, (uint8_t)btn_swap);
 }
 
 void load_config(int16_t *cpi, bool *as, int8_t *lod, int8_t *at, bool *btn_swap)
