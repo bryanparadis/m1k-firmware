@@ -38,6 +38,7 @@
 
 // You can change these to give your code its own name.
 #define FW_VERSION       L"v2.0"
+_Static_assert(sizeof(FW_VERSION) <= 63, "FW_VERSION must be less than or equal to 63 bytes. ID+FW_VERSION = 64");
 #define STR_MANUFACTURER L"Zaunkoenig"
 #define STR_PRODUCT      L"M1K"
 #define STR_SERIAL       FW_VERSION
@@ -175,7 +176,29 @@ static const uint8_t PROGMEM mouse_hid_report_desc[] = {
 	0x75, 0x08,		//   Report Size (8)
 	0x95, 0x01,		//   Report Count (1)
 	0x81, 0x06,		//   Input (Data, Variable, Relative) // Byte 6
-	0xC0			// End Collection
+	0xC0,			// End Collection
+    // 69 Bytes
+
+    // Vendor-Defined Collection (Feature Report with Report ID 2)
+    0x06, 0x00, 0xFF,              // USAGE_PAGE (Vendor-Defined 1) - Vendor-defined context (0xFF00)
+    0x09, 0x01,                    // USAGE (Vendor Usage 1) - Custom usage ID for this collection (0x01)
+    0xA1, 0x01,                    // COLLECTION (Application) - Starts an Application collection for config
+    0x85, 0x02,                    //   REPORT_ID (2) Get version
+    0x09, 0x01,                    //   USAGE (Vendor Usage 1)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,              //   LOGICAL_MAXIMUM (255)
+    0x75, 0x08,                    //   REPORT_SIZE (8)
+    0x95, 0x3F,                    //   REPORT_COUNT (63) // id + 63 = 64
+    0xb1, 0x02,                    //   FEATURE (Data,Var,Abs)
+    0x85, 0x03,                    //   REPORT_ID (3) Get and set config
+    0x09, 0x02,                    //   USAGE (Vendor Usage 2) - Custom usage ID for config data (0x02)
+    0x15, 0x00,                    //   LOGICAL_MINIMUM (0) - Config values start at 0
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   LOGICAL_MAXIMUM (65535) - Config values up to 65535 (16-bit unsigned)
+    0x75, 0x10,                    //   REPORT_SIZE (16) - Each config field is 16 bits
+    0x95, 0x02,                    //   REPORT_COUNT (2)
+    0xB1, 0x02,                    //   FEATURE (Data,Var,Abs) - 64 bytes of variable, absolute config data
+    0xC0                           // END_COLLECTION - Closes the vendor-defined Application collection
+    // 40 Bytes
 };
 
 #define CONFIG1_DESC_SIZE        (9+9+9+7)
