@@ -37,8 +37,10 @@
  **************************************************************************/
 
 // You can change these to give your code its own name.
-#define STR_MANUFACTURER	L"Zaunkoenig"
-#define STR_PRODUCT		L"M1K"
+#define FW_VERSION       L"v2.0"
+#define STR_MANUFACTURER L"Zaunkoenig"
+#define STR_PRODUCT      L"M1K"
+#define STR_SERIAL       FW_VERSION
 
 
 // Mac OS-X and Linux automatically load the correct drivers.  On
@@ -105,7 +107,7 @@ static const uint8_t PROGMEM device_descriptor[] = {
 	0x00, 0x01,				// bcdDevice
 	1,					// iManufacturer
 	2,					// iProduct
-	0,					// iSerialNumber
+	3,					// iSerialNumber
 	1					// bNumConfigurations
 };
 
@@ -241,6 +243,12 @@ static const struct usb_string_descriptor_struct PROGMEM string2 = {
 	STR_PRODUCT
 };
 
+static const struct usb_string_descriptor_struct PROGMEM string3 = {
+	sizeof(STR_SERIAL),
+	3,
+	STR_SERIAL
+};
+
 // This table defines which descriptor data is sent for each specific
 // request from the host (in wValue and wIndex).
 static const struct descriptor_list_struct {
@@ -255,7 +263,8 @@ static const struct descriptor_list_struct {
 	{0x2100, MOUSE_INTERFACE, config1_descriptor+MOUSE_HID_DESC_OFFSET, 9},
 	{0x0300, 0x0000, (const uint8_t *)&string0, 4},
 	{0x0301, 0x0409, (const uint8_t *)&string1, sizeof(STR_MANUFACTURER)},
-	{0x0302, 0x0409, (const uint8_t *)&string2, sizeof(STR_PRODUCT)}
+	{0x0302, 0x0409, (const uint8_t *)&string2, sizeof(STR_PRODUCT)},
+	{0x0303, 0x0409, (const uint8_t *)&string3, sizeof(STR_SERIAL)}
 };
 #define NUM_DESC_LIST (sizeof(descriptor_list)/sizeof(struct descriptor_list_struct))
 
