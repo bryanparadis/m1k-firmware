@@ -277,6 +277,13 @@ int main(void)
 			SS_LOW;
 			spi_send(0x50);
 
+			int16_t cpi;
+			bool as;
+			int8_t lod;
+            int8_t at;
+            bool btn_swap;
+			mouse_get_params(&cpi, &as, &lod, &at, &btn_swap);
+
 			/* instead of delay..., this should take more than 35ms */
 			bool overwrite_delta;
 			// high = not in contact, low = in contact
@@ -291,7 +298,14 @@ int main(void)
 				{.T = !(btn_raw & _BV(PD3)), .B = !(btn_raw & _BV(PD1))}
 			};
 			BUTTONS_task(1, inputs);
-			bool b1 = BUTTONS_get(0), b2 = BUTTONS_get(1);
+            bool b1, b2;
+            if (btn_swap) {
+			  b1 = BUTTONS_get(1);
+              b2 = BUTTONS_get(0);
+		    } else {
+              b1 = BUTTONS_get(0);
+              b2 = BUTTONS_get(1);
+            }
 			int16_t out_dx, out_dy;
 			overwrite_delta = mouse_step(time_ticks, b1, b2, prev_squal >= 16,
 					&b1, &b2, &out_dx, &out_dy);
@@ -320,11 +334,6 @@ int main(void)
 				_y.all = out_dy;
 			}
 
-			int16_t cpi;
-			bool as;
-			int8_t lod;
-            int8_t at;
-			mouse_get_params(&cpi, &as, &lod, &at);
 			pmw3366_set_cpi(cpi);
 			pmw3366_set_mode(as, lod);
             pmw3366_set_at(at);

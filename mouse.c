@@ -16,6 +16,7 @@
 #define AS_DEFAULT 0
 #define LOD_DEFAULT 2;
 #define AT_DEFAULT 0;
+#define BTN_SWAP_DEFAULT 0;
 
 #define CPI_MAX 12000
 #define CPI_MIN 100
@@ -73,8 +74,9 @@ static uint16_t EEMEM cpi_ee = CPI_DEFAULT;
 static uint8_t  EEMEM as_ee = 0;
 static uint8_t  EEMEM lod_ee = 2;
 static uint8_t  EEMEM at_ee = 0;
+static uint8_t  EEMEM btn_swap_ee = 0;
 
-void store_config(int16_t cpi, bool as, int8_t lod, int8_t at)
+void store_config(int16_t cpi, bool as, int8_t lod, int8_t at, bool btn_swap)
 {
     eeprom_write_word(&cpi_ee, (uint16_t)cpi);
     eeprom_busy_wait();
@@ -87,14 +89,18 @@ void store_config(int16_t cpi, bool as, int8_t lod, int8_t at)
 
     eeprom_write_byte(&at_ee, (uint8_t)at);
     eeprom_busy_wait();
+
+    eeprom_write_byte(&btn_swap_ee, (uint8_t)btn_swap);
+    eeprom_busy_wait();
 }
 
-void load_config(int16_t *cpi, bool *as, int8_t *lod, int8_t *at)
+void load_config(int16_t *cpi, bool *as, int8_t *lod, int8_t *at, bool *btn_swap)
 {
     *cpi = (int16_t)eeprom_read_word(&cpi_ee);
     *as  = (bool)eeprom_read_byte(&as_ee);
     *lod = (int8_t)eeprom_read_byte(&lod_ee);
     *at = (int8_t)eeprom_read_byte(&at_ee);
+    *btn_swap  = (bool)eeprom_read_byte(&btn_swap_ee);
 }
 #endif
 
@@ -102,6 +108,7 @@ static int16_t config_cpi;
 static bool config_as;
 static int8_t config_lod;
 static int8_t config_at;
+static bool config_btn_swap;
 
 static bool mode_changed(int32_t time, bool left, bool right, bool tracking)
 {
@@ -298,23 +305,23 @@ bool mouse_step(int32_t time, bool left, bool right, bool tracking,
     case POWERON:
         *out_left = *out_right = false;
         if (boot_press_time == -1) {
-            load_config(&config_cpi, &config_as, &config_lod, &config_at);
+            load_config(&config_cpi, &config_as, &config_lod, &config_at, &config_btn_swap);
             if (left && right) {
                 config_as = false;
                 config_lod = 2;
-                store_config(config_cpi, config_as, config_lod, config_at);
+                store_config(config_cpi, config_as, config_lod, config_at, config_btn_swap);
                 boot_press_time = time;
                 ANIMATE(ANIM_SQUARE_INV, ANIMATION_LENGTH_SQUARE, ANIMATION_DURATION_SQUARE, 1, TICKS_FROM_US(1000000), POWERON);
                 state = ANIM_WAIT;
             } else if (left) {
                 config_as = true;
-                store_config(config_cpi, config_as, config_lod, config_at);
+                store_config(config_cpi, config_as, config_lod, config_at, config_btn_swap);
                 boot_press_time = time;
                 ANIMATE(ANIM_SQUARE, ANIMATION_LENGTH_SQUARE, ANIMATION_DURATION_SQUARE, 1, TICKS_FROM_US(1000000), POWERON);
                 state = ANIM_WAIT;
             } else if (right) {
                 config_lod = 3;
-                store_config(config_cpi, config_as, config_lod, config_at);
+                store_config(config_cpi, config_as, config_lod, config_at, config_btn_swap);
                 boot_press_time = time;
                 ANIMATE(ANIM_SQUARE, ANIMATION_LENGTH_SQUARE, ANIMATION_DURATION_SQUARE, 1, TICKS_FROM_US(1000000), POWERON);
                 state = ANIM_WAIT;
@@ -328,7 +335,8 @@ bool mouse_step(int32_t time, bool left, bool right, bool tracking,
                 config_as = AS_DEFAULT;
                 config_cpi = CPI_DEFAULT;
                 config_at = AT_DEFAULT;
-                store_config(config_cpi, config_as, config_lod, config_at);
+                config_btn_swap = BTN_SWAP_DEFAULT;
+                store_config(config_cpi, config_as, config_lod, config_at, config_btn_swap);
                 DBG("Running bootloader\n");
                 run_bootloader();
             } else if (!left && !right) {
@@ -346,7 +354,7 @@ bool mouse_step(int32_t time, bool left, bool right, bool tracking,
     case CPI:
         *out_left = *out_right = false;
         if (mode_changed(time, left, right, tracking)) {
-            store_config(config_cpi, config_as, config_lod, config_at);
+            store_config(config_cpi, config_as, config_lod, config_at, config_btn_swap);
             ANIMATE(ANIM_SPIKE_RIGHT, ANIMATION_LENGTH_SPIKE_SHORT, ANIMATION_DURATION_SPIKE_INDICATION, config_cpi / 1000, ANIMATION_DURATION_SPIKE_INDICATION,
                     SHOW_CPI_HUNDREDS);
             next_next_state = IDLE;
@@ -489,10 +497,11 @@ bool mouse_step(int32_t time, bool left, bool right, bool tracking,
     return rv;
 }
 
-void mouse_get_params(int16_t *out_cpi, bool *out_as, int8_t *out_lod, int8_t *out_at)
+void mouse_get_params(int16_t *out_cpi, bool *out_as, int8_t *out_lod, int8_t *out_at, bool *out_btn_swap)
 {
     *out_cpi = config_cpi;
     *out_as = config_as;
     *out_lod = config_lod;
     *out_at = config_at;
+    *out_btn_swap = config_btn_swap;
 }
