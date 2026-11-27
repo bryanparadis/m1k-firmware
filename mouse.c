@@ -496,3 +496,18 @@ void mouse_get_params(int16_t *out_cpi, bool *out_as, int8_t *out_lod, int8_t *o
     *out_at = config_at;
     *out_btn_swap = config_btn_swap;
 }
+
+void mouse_set_params(int16_t cpi, bool as, int8_t lod, int8_t at, bool btn_swap)
+{
+    if (cpi < CPI_MIN) cpi = CPI_MIN;
+    if (cpi > CPI_MAX) cpi = CPI_MAX;
+    if (lod != 2 && lod != 3) lod = LOD_DEFAULT;
+
+    config_cpi = cpi;
+    config_as = as;
+    config_lod = lod;
+    config_at = at;
+    config_btn_swap = btn_swap;
+
+    store_config(cpi, as, lod, at, btn_swap);
+}

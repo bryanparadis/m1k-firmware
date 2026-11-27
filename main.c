@@ -270,6 +270,7 @@ int main(void)
 			TIFR0 |= (1<<OCF0A); // 0CF0A is cleared by writing 1
 
 			const uint8_t intr_state = SREG;
+
 			cli();
 
 			union motion_data _x, _y;
@@ -362,6 +363,7 @@ int main(void)
 					PORTC |= _BV(PC6);
 					PORTC &= ~_BV(PC6);
 #endif
+                    UEDATX = 0x01;
 					UEDATX = btn_usb;
 					UEDATX = x.lo;
 					UEDATX = x.hi;

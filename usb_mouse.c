@@ -29,6 +29,8 @@
 
 #define USB_SERIAL_PRIVATE_INCLUDE
 #include "usb_mouse.h"
+#include "mouse.h"
+#include <string.h>
 
 /**************************************************************************
  *
@@ -37,11 +39,11 @@
  **************************************************************************/
 
 // You can change these to give your code its own name.
-#define FW_VERSION       L"v2.0"
+#define FW_VERSION       "v2.0"
 _Static_assert(sizeof(FW_VERSION) <= 63, "FW_VERSION must be less than or equal to 63 bytes. ID+FW_VERSION = 64");
 #define STR_MANUFACTURER L"Zaunkoenig"
 #define STR_PRODUCT      L"M1K"
-#define STR_SERIAL       FW_VERSION
+#define STR_SERIAL       L"" FW_VERSION
 
 
 // Mac OS-X and Linux automatically load the correct drivers.  On
@@ -67,7 +69,7 @@ _Static_assert(sizeof(FW_VERSION) <= 63, "FW_VERSION must be less than or equal 
  *
  **************************************************************************/
 
-#define ENDPOINT0_SIZE		32
+#define ENDPOINT0_SIZE		64
 
 #define MOUSE_INTERFACE		0
 //#define MOUSE_ENDPOINT	3 // moved to usb_mouse.h for use in main
@@ -147,6 +149,7 @@ static const uint8_t PROGMEM mouse_hid_report_desc[] = {
 	0x05, 0x01,		// Usage Page (Generic Desktop)
 	0x09, 0x02,		// Usage (Mouse)
 	0xA1, 0x01,		// Collection (Application)
+    0x85, 0x01,     //   REPORT_ID (1) - Assigns Report ID 1 to this input report (0x01)
 	0x05, 0x09,		//   Usage Page (Button)
 	0x19, 0x01,		//   Usage Minimum (Button #1)
 	0x29, 0x03,		//   Usage Maximum (Button #3)
@@ -193,9 +196,9 @@ static const uint8_t PROGMEM mouse_hid_report_desc[] = {
     0x85, 0x03,                    //   REPORT_ID (3) Get and set config
     0x09, 0x02,                    //   USAGE (Vendor Usage 2) - Custom usage ID for config data (0x02)
     0x15, 0x00,                    //   LOGICAL_MINIMUM (0) - Config values start at 0
-    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   LOGICAL_MAXIMUM (65535) - Config values up to 65535 (16-bit unsigned)
-    0x75, 0x10,                    //   REPORT_SIZE (16) - Each config field is 16 bits
-    0x95, 0x02,                    //   REPORT_COUNT (2)
+    0x27, 0xFF, 0xFF, 0x00, 0x00,  //   LOGICAL_MAXIMUM (255) - Config values up to 255 (8-bit unsigned)
+    0x75, 0x08,                    //   REPORT_SIZE (8) - Each config field is 8 bits
+    0x95, 0x06,                    //   REPORT_COUNT (6)
     0xB1, 0x02,                    //   FEATURE (Data,Var,Abs) - 64 bytes of variable, absolute config data
     0xC0                           // END_COLLECTION - Closes the vendor-defined Application collection
     // 40 Bytes
@@ -238,7 +241,7 @@ static const uint8_t PROGMEM config1_descriptor[CONFIG1_DESC_SIZE] = {
 	5,					// bDescriptorType
 	MOUSE_ENDPOINT | 0x80,			// bEndpointAddress
 	0x03,					// bmAttributes (0x03=intr)
-	6, 0,					// wMaxPacketSize
+	8, 0,					// wMaxPacketSize
 	1					// bInterval
 };
 
@@ -561,15 +564,41 @@ ISR(USB_COM_vect)
 		if (wIndex == MOUSE_INTERFACE) {
 			if (bmRequestType == 0xA1) {
 				if (bRequest == HID_GET_REPORT) {
-					usb_wait_in_ready();
-					UEDATX = 0;
-					UEDATX = 0;
-					UEDATX = 0;
-					UEDATX = 0;
-					UEDATX = 0;
-					UEDATX = 0;
-					usb_send_in();
-					return;
+                    if(wValue == 0x0302) {
+                        uint8_t buf[64] = { 0x02};
+                        strcpy((char *)buf + 1, FW_VERSION);
+                        usb_wait_in_ready();
+                        for(uint8_t i = 0; i < 64; i++){
+                            UEDATX = buf[i];
+                        }
+                        usb_send_in();
+                        return;
+                    }
+                    if(wValue == 0x0303) {
+                        int16_t cpi;
+                        bool as;
+                        int8_t lod;
+                        int8_t at;
+                        bool btn_swap;
+                        mouse_get_params(&cpi, &as, &lod, &at, &btn_swap);
+                        uint8_t buf[7] = { 0x03, cpi & 0xFF, (cpi >> 8) & 0xFF, as, lod, at, btn_swap };
+                        usb_wait_in_ready();
+                        for(uint8_t i = 0; i < sizeof(buf); i++){
+                            UEDATX = buf[i];
+                        }
+                        usb_send_in();
+                        return;
+                    } else {
+                        usb_wait_in_ready();
+                        UEDATX = 0;
+                        UEDATX = 0;
+                        UEDATX = 0;
+                        UEDATX = 0;
+                        UEDATX = 0;
+                        UEDATX = 0;
+                        usb_send_in();
+                        return;
+                    }
 				}
 				if (bRequest == HID_GET_PROTOCOL) {
 					usb_wait_in_ready();
@@ -584,6 +613,20 @@ ISR(USB_COM_vect)
 					usb_send_in();
 					return;
 				}
+				if (bRequest == HID_SET_REPORT) {
+                    if(wValue == 0x0303) {
+                        uint8_t buf[7];
+                        usb_wait_receive_out();
+                        for(uint8_t i = 0; i < sizeof(buf); i++) {
+                            buf[i] = UEDATX;
+                        }
+                        usb_ack_out();
+                        mouse_set_params(buf[1] | (buf[2] << 8), buf[3], buf[4], buf[5], buf[6]);
+                        usb_wait_in_ready();
+                        usb_send_in();
+                        return;
+                    }
+                }
 			}
 		}
 	}

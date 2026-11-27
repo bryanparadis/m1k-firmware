@@ -26,5 +26,5 @@
 bool mouse_step(int32_t time, bool left, bool right, bool tracking,
                 bool *out_left, bool *out_right, int16_t *out_dx, int16_t *out_dy);
 void mouse_get_params(int16_t *out_cpi, bool *out_as, int8_t *out_lod, int8_t *out_at, bool *out_btn_swap);
-
+void mouse_set_params(int16_t cpi, bool as, int8_t lod, int8_t at, bool btn_swap);
 #endif
